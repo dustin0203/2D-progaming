@@ -1,76 +1,115 @@
-from object import *
+import random
+import json
+import os
+
+from pico2d import *
+from GameObject import *
+
+import game_framework
+import title_state
+
+
+name = "MainState"
 
 player = None
 background = None
-building = None
+buildings = None
+Brokenbuildings = None
+
+camerRect = None
+
+def enter():
+    global player, background, buildings,camerRect,Brokenbuildings
+    background = Background("background.png")
+    buildings = [Building("building.png",130,200) for i in range(1)]
+    Brokenbuildings = []
+
+    player = Player("player.png", 320, 1270, 5, 5)
+    camerRect = SDL_Rect(int(0),int(0),int(640),int(480))
+
+    game_framework.reset_time()
 
 
-def handle_events():
+def exit():
+    global player, background,buildings,camerRect,Brokenbuildings
+    del(player)
+    del(background)
+    del(buildings)
+    del(camerRect)
+    del(Brokenbuildings)
+def pause():
+    pass
+
+
+def resume():
+    pass
+
+def handle_events(frame_time):
     global running
     global player
     events = get_events()
-
     for event in events:
         if event.type == SDL_QUIT:
-            running = False
+            game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
-            running = False
+            game_framework.change_state(title_state)
         else:
+
             player.handle_event(event)
 
-def main():
-    global player
-    global background
-    global building
-    global running
 
-    open_canvas()
-    background = Background("background.png")
-    building = Building("Building.png", 70, 100)
-    player = Player("player.png", 280, 1270, 5, 5)
-    cameraRect = SDL_Rect(int(0), int(0), int(640), int(480))
-
-    running = True
-    currentTime = 0
-    prevTime = 0
-    delta = 0.0
-
-    while running:
-
-        prevTime = currentTime
-        currentTime = SDL_GetTicks()
-        delta = (currentTime - prevTime) / 1000.0
-
-        handle_events()
-
-        player.update(delta)
-
-        cameraRect.x = abs(int(player.GetOriginX() - 320))
-        cameraRect.y = abs(int(player.GetOriginY()- 240))
-
-        if(cameraRect.x < 0):
-            cameraRect.x = 0
-        if(cameraRect.y < 0):
-            cameraRect.y = 0
-        if(cameraRect.x + cameraRect.w >= background.GetWidth()):
-            cameraRect.x = background.GetWidth() - 640
-        if(cameraRect.y + cameraRect.h >= background.GetHeight()):
-            cameraRect.y = background.GetHeight() - 480
-
-        player.intersectsWith(building)
-
-        clear_canvas()
-
-        background.draw(cameraRect)
-        building.draw(cameraRect)
-        player.draw(cameraRect)
-
-        update_canvas()
-
-        delay(0.01)
-
-    close_canvas()
+def update(frame_time):
+    global player, background, buildings,camerRect,Brokenbuildings
 
 
-if __name__ == '__main__':
-    main()
+    player.Update(frame_time)
+
+    for building in buildings:
+        building.Update(frame_time)
+        player.IntersectsWith(building)
+
+    for building in buildings:
+        if(building.HIT):
+             Brokenbuildings.append(Brokenbuilding(int(building.GetOriginX()),int(building.GetOriginY())))
+        if(building.Broken):
+            buildings.remove(building)
+            buildings.append(Building("building.png",130,100))
+
+
+
+    for Broken in Brokenbuildings:
+        Broken.Update(frame_time)
+        if(Broken.remove):
+            Brokenbuildings.remove(Broken)
+
+
+    camerRect.x = abs(int(player.GetOriginX()-320))
+    camerRect.y = abs(int(player.GetOriginY()-240))
+
+
+    if(camerRect.y <0):
+            camerRect.y= 0
+    if(camerRect.y + camerRect.h>=background.GetHeight()):
+            camerRect.y = background.GetHeight() - 480
+
+
+
+def draw(frame_time):
+    global player, background, buildings,camerRect,Brokenbuildings
+
+    clear_canvas()
+
+
+    background.Draw(camerRect)
+
+    for building in buildings:
+        building.Draw(camerRect)
+
+    for Broken in Brokenbuildings:
+        Broken.Draw(camerRect)
+
+    player.Draw(camerRect)
+
+    update_canvas()
+
+
